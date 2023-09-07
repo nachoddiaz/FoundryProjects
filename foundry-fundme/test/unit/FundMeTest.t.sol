@@ -21,7 +21,7 @@ contract FundMeTest is Test {
     address immutable i_USER = makeAddr("user");
     uint256 immutable i_sent_value = 0.1 ether;
     uint256 constant INITIAL_ETH = 10 ether;
-    uint256 constant GAS_PRICE = 1;
+    uint8 constant GAS_PRICE = 1;
 
     //SetUp test always runs before any test
     function setUp() external {
