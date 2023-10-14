@@ -44,8 +44,8 @@ contract FundMe {
     //////////////////
     //   Variables  //
     //////////////////
-    //Constants & immutables are not in storage, they are in the bytecode of the cotnract
-    //Variables inside functions are either in sotrage, they are in memory
+    //Constants & immutables are not in storage, they are in the bytecode of the contract
+    //Variables inside functions are either in storage, they are in memory
     uint256 public constant MIN_USD = 50 * 10 ** 18;
     address public immutable i_owner;
     mapping(address => uint256) private s_amountFundedByFunder;
