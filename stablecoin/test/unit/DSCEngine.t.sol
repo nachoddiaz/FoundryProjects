@@ -5,11 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DSCEngine} from "src/DSCEngine.sol";
 
 contract DSCEngineTest is Test {
-
     DSCEngine dscEngine;
 
-    
-    constructor() {
-        
-    }
+    constructor() {}
 }
