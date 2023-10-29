@@ -58,6 +58,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenNotSupported();
     error DSCEngine__DepositCollateralFailed();
     error DCSEnfine__HealthFactorBelowMinimum(uint256 healthFactor);
+    error DSCEngine__MintFailed();
 
     ///////////////////
     //    Events     //
@@ -159,6 +160,11 @@ contract DSCEngine is ReentrancyGuard {
     function mintDSC(uint256 amountToMint) external GreaterThanZero(amountToMint) nonReentrant {
         s_DSCMinted[msg.sender] = s_DSCMinted[msg.sender] + amountToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
+
+        bool minted = i_dsc.mint(msg.sender, amountToMint);
+        if (!minted) {
+            revert DSCEngine__MintFailed();
+        }
     }
 
     function burnDSC() external {}
