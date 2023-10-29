@@ -4,9 +4,12 @@ pragma solidity ^0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
 contract HelperConfig is Script {
     uint8 public constant DECIMALS = 8;
+    int256 public constant ETH_USD_INITIAL_PRICE = 2000e8;
+    int256 public constant BTC_USD_INITIAL_PRICE = 30000e8;
 
     struct NetworkConfig {
         address wethUsdPriceFeedAddress;
@@ -39,7 +42,18 @@ contract HelperConfig is Script {
         }
 
         vm.startBroadcast();
-        MockV3Aggregator mockWethUsdPriceFeed = new MockV3Aggregator(DECIMALS, INITIAL_PRICE);
+        MockV3Aggregator ethUsdPriceFeed = new MockV3Aggregator(DECIMALS, ETH_USD_INITIAL_PRICE);
+        ERC20Mock weth = new ERC20Mock("Wrapped Ether", "WETH");
+        MockV3Aggregator btcUsdPriceFeed = new MockV3Aggregator(DECIMALS, BTC_USD_INITIAL_PRICE);
+        ERC20Mock wbtc = new ERC20Mock("Wrapped Bitcoin", "WBTC");
         vm.stopBroadcast();
+
+        NetworkConfig memory anvilConfig = NetworkConfig({
+            wethUsdPriceFeedAddress: address(ethUsdPriceFeed),
+            wbtcUsdPriceFeedAddress: address(btcUsdPriceFeed),
+            weth: weth.address,
+            wbtc: wbtc.address,
+            deployerKey: vm.envUint("PRIVATE_KEY_MM_FP")
+        });
     }
 }
