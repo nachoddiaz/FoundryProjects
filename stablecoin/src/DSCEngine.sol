@@ -43,7 +43,7 @@ pragma solidity ^0.8.19;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 //So we can use the nonReentrant modifier
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 //So we can use the transferFrom function
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from
@@ -127,12 +127,38 @@ contract DSCEngine is ReentrancyGuard {
     // External Functions //
     ////////////////////////
 
+
+    /*
+    * @param tokenCollateralAddress -> Address of the collateral token
+    * @param amountCollateral -> Amount of collateral to deposit
+    * @param amountDscToMint -> Amount of DSC to mint
+    * @notice this function will deposit collateral and mint DSC in the same tx
+    * @notice need more collateral than 1.5x the amount of DSC minted 
+    */
+
+    function depositCollateralAndMintDSC(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountDscToMint
+    ) external {
+        depositCollateral(tokenCollateralAddress, amountCollateral);
+        mintDSC(amountDscToMint);
+    }
+
+    function redeemCollateralForDSC() external {}
+
+    function redeemCollatreral() external {}
+
+    ////////////////////////
+    //  Public Functions  //
+    ////////////////////////
+
     /**
      * @param tokenCollateralAddress -> Address of the collateral token
      * @param amountCollateral -> Amount of collateral to deposit
      */
-    function depositCollateralAndMintDSC(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+    function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+        public
         GreaterThanZero(amountCollateral)
         isTokenAllowed(tokenCollateralAddress)
         //We use nonReentrant to avoid reentrancy attacks cause this is an external function. Uses more gas
@@ -147,17 +173,11 @@ contract DSCEngine is ReentrancyGuard {
         if (!success) revert DSCEngine__DepositCollateralFailed();
     }
 
-    function depositCollatreral() external {}
-
-    function redeemCollateralForDSC() external {}
-
-    function redeemCollatreral() external {}
-
     /*
     * @param amountToMint -> Amount of DSC to mint
     * @notice Need more collateral then the minimum collateral ratio
     */
-    function mintDSC(uint256 amountToMint) external GreaterThanZero(amountToMint) nonReentrant {
+    function mintDSC(uint256 amountToMint) public GreaterThanZero(amountToMint) nonReentrant {
         s_DSCMinted[msg.sender] = s_DSCMinted[msg.sender] + amountToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
 
@@ -230,14 +250,12 @@ contract DSCEngine is ReentrancyGuard {
         //2. Return the collateral value
     }
 
-    function getUsdValue(uint256 ammount, address token) public view returns (uint256) {
+    function getUsdValue(uint256 amount, address token) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         //1. Get the price in USD of the token
         (, int256 price,,,) = priceFeed.latestRoundData();
-        //2. Ajustamos decimales
-        price = price / (10 ** 8);
         //2. Multiply the amount by the price in USD of the token
-        //3. Return the value in USD
-        return uint256(((uint256(price) * FEED_PRECISION) * ammount) / ETHDECIMALS);
+        //3. Return the value in USD -> ETHDECIMALS ** 2 to get the value in USD, not in USD * 10e18
+        return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS ** 2));
     }
 }

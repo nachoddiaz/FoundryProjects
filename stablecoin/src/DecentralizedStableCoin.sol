@@ -44,7 +44,11 @@ error DecentralizedStableCoin__BurnAmountExceedsBalance();
 error DecentralizedStableCoin__NotZeroAddress();
 
 contract DecentralizedStableCoin is ERC20Burnable, Ownable {
-    constructor() ERC20("DecentralizedStableCoin", "DSC") Ownable(0xF39fD6E51aad88F6F4CE6aB8827279CffFb92263) {}
+    //constructor() ERC20("DecentralizedStableCoin", "DSC") Ownable(0xF39fD6E51aad88F6F4CE6aB8827279CffFb92263) {}
+    //Because we use v4.8.3 of openzeppelin, we dont need to use the constructor of ERC20 withouot Ownable(addressOftheContractOwner)
+    //If we use the most recent version of openzeppelin, we need to use the constructor of ERC20 with Ownable(addressOftheContractOwner)
+
+    constructor() ERC20("DecentralizedStableCoin", "DSC") {}
 
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);
