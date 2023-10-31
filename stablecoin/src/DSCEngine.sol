@@ -88,6 +88,7 @@ contract DSCEngine is ReentrancyGuard {
         _;
     }
 
+
     /////////////////////
     // State Variables //
     /////////////////////
@@ -233,8 +234,7 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    //1. We need to
-    //2. We need to sell the collateral to keep the value of the DS stable
+    //1. the contract need to call redeem and burn to keep the DSC value stable
     function liquidate(address user, address tokenCollateralAddress, uint256 amountCollateral)
         private
         GreaterThanZero(amountCollateral)
