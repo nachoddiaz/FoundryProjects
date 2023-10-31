@@ -61,6 +61,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MintFailed();
     error DSCEngine__RedeemCollateralFailed();
     error DSCEngine__BurnDSCFailed();
+    error DSCEngine__HealthFactorOk(address user);
 
     ///////////////////
     //    Events     //
@@ -87,7 +88,6 @@ contract DSCEngine is ReentrancyGuard {
         if (s_priceFeeds[_token] != address(0)) revert DSCEngine__TokenNotSupported();
         _;
     }
-
 
     /////////////////////
     // State Variables //
@@ -234,18 +234,37 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
+    //If someone is near liquidation, we nee someoune to liquidate him
+    //To achieve that, the liquidator burns the debt and keep the collateral of the first debtor
     //1. the contract need to call redeem and burn to keep the DSC value stable
-    function liquidate(address user, address tokenCollateralAddress, uint256 amountCollateral)
+
+    /*
+    * @param tokenCollateralAddress -> Address of the collateral token
+    * @param user -> Address of the user that has a healtFactor below MIN_HEALTH_FACTOR
+    * @param debtToCover -> Amount of DSC to burn to improve the healthFactor of the user
+    * @notice Partial liquidations are allowed
+    * @notice The liquidator will get the collateral of the user -> Big incentive
+    * @notice The function assumes the protocol will be 150% overcollateralized to work
+    */
+    function liquidate(address tokenCollateralAddress, address user, uint256 debtToCover)
         private
-        GreaterThanZero(amountCollateral)
+        GreaterThanZero(debtToCover)
         isTokenAllowed(tokenCollateralAddress)
+        nonReentrant
     {
-        s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+        //Check Health Factor of the user
+        uint256 startingHealthFactor = _healthFactor(user);
+        if (startingHealthFactor >= MIN_HEALTH_FACTOR) {
+            revert DSCEngine__HealthFactorOk(user);
+        }
+        //1. Burn the debt of the user
 
-        emit UserLiquidated(msg.sender, tokenCollateralAddress, amountCollateral);
+        // s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+        //2. Take the collateral of the user
+        // emit UserLiquidated(msg.sender, tokenCollateralAddress, amountCollateral);
 
-        bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
-        if (!success) revert DSCEngine__DepositCollateralFailed();
+        // bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
+        // if (!success) revert DSCEngine__DepositCollateralFailed();
     }
 
     function getHealthFactor() external {}
