@@ -59,6 +59,8 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__DepositCollateralFailed();
     error DCSEnfine__HealthFactorBelowMinimum(uint256 healthFactor);
     error DSCEngine__MintFailed();
+    error DSCEngine__RedeemCollateralFailed();
+    error DSCEngine__BurnDSCFailed();
 
     ///////////////////
     //    Events     //
@@ -66,7 +68,9 @@ contract DSCEngine is ReentrancyGuard {
 
     //Using indexed we can filter the events by the indexed parameters causethis parameter will be indexed by the Ethereum node's log system
     //Ex. show all the "CollarerDoposited" events for a specific user
-    event CollateralDoposited(address indexed user, address indexed token, uint256 amountCollateral);
+    event CollateralDeposited(address indexed user, address indexed token, uint256 amountCollateral);
+    event CollateralRedeemed(address indexed user, address indexed token, uint256 amountCollateral);
+    event DSCBurned(address indexed user, uint256 amountDSC);
 
     ///////////////////
     //   Modifers    //
@@ -127,7 +131,6 @@ contract DSCEngine is ReentrancyGuard {
     // External Functions //
     ////////////////////////
 
-
     /*
     * @param tokenCollateralAddress -> Address of the collateral token
     * @param amountCollateral -> Amount of collateral to deposit
@@ -145,9 +148,19 @@ contract DSCEngine is ReentrancyGuard {
         mintDSC(amountDscToMint);
     }
 
-    function redeemCollateralForDSC() external {}
-
-    function redeemCollatreral() external {}
+    /*
+    * @param tokenCollateralAddress -> Address of the collateral token
+    * @param amountCollateral -> Amount of collateral to redeem
+    * @param amountToBurn -> Amount of DSC to burn
+    * @notice this function will redeem collateral and burn DSC in the same tx
+    */
+    function redeemCollateralForDSC(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountToBurn)
+        external
+    {
+        redeemCollatreral(tokenCollateralAddress, amountCollateral);
+        burnDSC(amountToBurn);
+        //both functions check healthFactor
+    }
 
     ////////////////////////
     //  Public Functions  //
@@ -167,7 +180,7 @@ contract DSCEngine is ReentrancyGuard {
         s_collateralDoposited[msg.sender][tokenCollateralAddress] =
             s_collateralDoposited[msg.sender][tokenCollateralAddress] + amountCollateral;
 
-        emit CollateralDoposited(msg.sender, tokenCollateralAddress, amountCollateral);
+        emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
 
         bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
         if (!success) revert DSCEngine__DepositCollateralFailed();
@@ -187,9 +200,53 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-    function burnDSC() external {}
+    //Health factor must be greater than 1 after collateral pulled
+    function redeemCollatreral(address tokenCollateralAddress, uint256 amountCollateral)
+        public
+        GreaterThanZero(amountCollateral)
+        isTokenAllowed(tokenCollateralAddress)
+        nonReentrant
+    {
+        s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+        emit CollateralRedeemed(msg.sender, tokenCollateralAddress, amountCollateral);
 
-    function liquidate() external {}
+        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
+        if (!success) {
+            revert DSCEngine__RedeemCollateralFailed();
+        }
+        //Just to be sure that the user has enough collateral
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
+
+    function burnDSC(uint256 amount) public GreaterThanZero(amount) {
+        s_DSCMinted[msg.sender] -= amount;
+        emit DSCBurned(msg.sender, amount);
+
+        //We cant burn tokens without passing them previously to the contract,
+        //Thats why first we transfer the tokens from the msg.sender to the contract
+        //bool success = i_dsc.burn(amount);
+        bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
+        if (!success) {
+            revert DSCEngine__BurnDSCFailed();
+        }
+        i_dsc.burn(amount);
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
+
+    //1. We need to
+    //2. We need to sell the collateral to keep the value of the DS stable
+    function liquidate(address user, address tokenCollateralAddress, uint256 amountCollateral)
+        private
+        GreaterThanZero(amountCollateral)
+        isTokenAllowed(tokenCollateralAddress)
+    {
+        s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+
+        emit UserLiquidated(msg.sender, tokenCollateralAddress, amountCollateral);
+
+        bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
+        if (!success) revert DSCEngine__DepositCollateralFailed();
+    }
 
     function getHealthFactor() external {}
 
