@@ -105,7 +105,7 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant LIQUIDATION_THRESHOLD = 150; //150% overcollateralized
     uint256 private constant LIQUIDATION_DECIMALS = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1;
-
+    uint256 private constant LIQUIDATION_BONUS = 10; //10% of the debt goes to liqiudators
     ///////////////////
     //   Functions   //
     ///////////////////
@@ -259,12 +259,9 @@ contract DSCEngine is ReentrancyGuard {
         }
         //1. Burn the debt of the user
 
-        // s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
-        //2. Take the collateral of the user
-        // emit UserLiquidated(msg.sender, tokenCollateralAddress, amountCollateral);
-
-        // bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
-        // if (!success) revert DSCEngine__DepositCollateralFailed();
+        uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(tokenCollateralAddress, debtToCover);
+        //Liquidators need some incentive -> give them 10% of the debt
+        uint256 bonusToLiquidators = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_DECIMALS;
     }
 
     function getHealthFactor() external {}
@@ -333,5 +330,13 @@ contract DSCEngine is ReentrancyGuard {
         //2. Multiply the amount by the price in USD of the token
         //3. Return the value in USD -> ETHDECIMALS ** 2 to get the value in USD, not in USD * 10e18
         return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS ** 2));
+    }
+
+    //This function is the inverse of getUsdValue
+    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        //returns the amount of tokens that the debtToCover is worth
+        return uint256(((ETHDECIMALS) * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
     }
 }
