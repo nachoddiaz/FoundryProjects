@@ -62,6 +62,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__RedeemCollateralFailed();
     error DSCEngine__BurnDSCFailed();
     error DSCEngine__HealthFactorOk(address user);
+    error DSCEngine__LiquidationFailed();
 
     ///////////////////
     //    Events     //
@@ -245,6 +246,7 @@ contract DSCEngine is ReentrancyGuard {
     * @notice Partial liquidations are allowed
     * @notice The liquidator will get the collateral of the user -> Big incentive
     * @notice The function assumes the protocol will be 150% overcollateralized to work
+    * @notice The msg.sender must be the liquidator
     */
     function liquidate(address tokenCollateralAddress, address user, uint256 debtToCover)
         private
@@ -262,6 +264,16 @@ contract DSCEngine is ReentrancyGuard {
         uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(tokenCollateralAddress, debtToCover);
         //Liquidators need some incentive -> give them 10% of the debt
         uint256 bonusToLiquidators = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_DECIMALS;
+
+        //Burn the debt of the user
+        burnDSC(debtToCover);
+
+        //Who will get the remain collateral -> debtToCover - bonusToLiquidators?
+
+        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, bonusToLiquidators);
+        if (!success) {
+            revert DSCEngine__LiquidationFailed();
+        }
     }
 
     function getHealthFactor() external {}
