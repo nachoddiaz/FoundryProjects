@@ -284,6 +284,8 @@ contract DSCEngine is ReentrancyGuard {
 
     //We use _FunctionName to indicate that the function is internal
 
+    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral) )
+
     function _getAccountInformation(address user)
         private
         view
