@@ -63,6 +63,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__BurnDSCFailed();
     error DSCEngine__HealthFactorOk(address user);
     error DSCEngine__LiquidationFailed();
+    error DSCEngine__HealthFactorNotImproved();
 
     ///////////////////
     //    Events     //
@@ -71,7 +72,9 @@ contract DSCEngine is ReentrancyGuard {
     //Using indexed we can filter the events by the indexed parameters causethis parameter will be indexed by the Ethereum node's log system
     //Ex. show all the "CollarerDoposited" events for a specific user
     event CollateralDeposited(address indexed user, address indexed token, uint256 amountCollateral);
-    event CollateralRedeemed(address indexed user, address indexed token, uint256 amountCollateral);
+    event CollateralRedeemed(
+        address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amountCollateral
+    );
     event DSCBurned(address indexed user, uint256 amountDSC);
 
     ///////////////////
@@ -209,29 +212,13 @@ contract DSCEngine is ReentrancyGuard {
         isTokenAllowed(tokenCollateralAddress)
         nonReentrant
     {
-        s_collateralDoposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
-        emit CollateralRedeemed(msg.sender, tokenCollateralAddress, amountCollateral);
-
-        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
-        if (!success) {
-            revert DSCEngine__RedeemCollateralFailed();
-        }
+        _redeemCollateral(tokenCollateralAddress, amountCollateral, msg.sender, msg.sender);
         //Just to be sure that the user has enough collateral
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     function burnDSC(uint256 amount) public GreaterThanZero(amount) {
-        s_DSCMinted[msg.sender] -= amount;
-        emit DSCBurned(msg.sender, amount);
-
-        //We cant burn tokens without passing them previously to the contract,
-        //Thats why first we transfer the tokens from the msg.sender to the contract
-        //bool success = i_dsc.burn(amount);
-        bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
-        if (!success) {
-            revert DSCEngine__BurnDSCFailed();
-        }
-        i_dsc.burn(amount);
+        _burnDSC(amount, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
@@ -265,8 +252,16 @@ contract DSCEngine is ReentrancyGuard {
         //Liquidators need some incentive -> give them 10% of the debt
         uint256 bonusToLiquidators = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_DECIMALS;
 
+        uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusToLiquidators;
+        _redeemCollateral(tokenCollateralAddress, totalCollateralToRedeem, user, msg.sender);
         //Burn the debt of the user
-        burnDSC(debtToCover);
+        _burnDSC(debtToCover, user, msg.sender);
+
+        uint256 endingUserHealthFacotr = _healthFactor(user);
+        if (endingUserHealthFacotr <= startingHealthFactor) {
+            revert DSCEngine__HealthFactorNotImproved();
+        }
+        _revertIfHealthFactorIsBroken(msg.sender);
 
         //Who will get the remain collateral -> debtToCover - bonusToLiquidators?
 
@@ -284,7 +279,43 @@ contract DSCEngine is ReentrancyGuard {
 
     //We use _FunctionName to indicate that the function is internal
 
-    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral) )
+    /*
+    * @param tokenCollateralAddress -> Address of the collateral token
+    * @param amountCollateral -> Amount of collateral to deposit
+    * @param from -> Address of the user thats is going to be liquidated
+    * @param to -> Address of the liquidator and de receiver of the reward
+    */
+    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
+        private
+    {
+        s_collateralDoposited[from][tokenCollateralAddress] -= amountCollateral;
+        emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
+
+        bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
+        if (!success) {
+            revert DSCEngine__RedeemCollateralFailed();
+        }
+    }
+
+    /*
+    * @param amountDscToBurn -> Amount of DSC to burn
+    * @param ownerOfCollateral -> Address of the user that has a healtFactor below MIN_HEALTH_FACTOR
+    * @param DscFrom -> Address of the user that is going to burn the DSC
+    * @ndev Do not call this functino unless the function calling checks the healthFactors
+    */
+    function _burnDSC(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) private {
+        s_DSCMinted[ownerOfCollateral] -= amountDscToBurn;
+        emit DSCBurned(ownerOfCollateral, amountDscToBurn);
+
+        //We cant burn tokens without passing them previously to the contract,
+        //Thats why first we transfer the tokens from the msg.sender to the contract
+        //bool success = i_dsc.burn(amountDscToBurn);
+        bool success = i_dsc.transferFrom(DscFrom, address(this), amountDscToBurn);
+        if (!success) {
+            revert DSCEngine__BurnDSCFailed();
+        }
+        i_dsc.burn(amountDscToBurn);
+    }
 
     function _getAccountInformation(address user)
         private
