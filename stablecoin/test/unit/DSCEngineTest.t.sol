@@ -16,9 +16,11 @@ contract DSCEngineTest is Test {
 
     address ethUsdPriceFeedAddress;
     address weth;
+    address btcUsdPriceFeedAddress;
+    address wbtc;
 
     address immutable i_USER = makeAddr("user");
-    uint256 immutable i_amount_collateral = 10 ether;
+    uint256 i_amount_collateral = 10 ether;
     uint256 immutable i_collateral_deposited = 1 ether;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
@@ -26,19 +28,42 @@ contract DSCEngineTest is Test {
     function setUp() external {
         deployer = new DeployDSC();
         (dsc, dscEngine, config) = deployer.run();
-        (ethUsdPriceFeedAddress,, weth,,) = config.ActiveNetworkConfig();
+        (ethUsdPriceFeedAddress, btcUsdPriceFeedAddress, weth, wbtc,) = config.ActiveNetworkConfig();
 
         ERC20Mock(weth).mint(address(dscEngine), i_amount_collateral);
+    }
+
+    /////////////////////////
+    //   Constructor test  //
+    /////////////////////////
+
+    address[] public tokenAddresses;
+    address[] public priceFeedAddresses;
+
+    function testRevertsIfTokenLenghtDoesntMatchPriceFeeds() public {
+        tokenAddresses.push(weth);
+        priceFeedAddresses.push(ethUsdPriceFeedAddress);
+        priceFeedAddresses.push(btcUsdPriceFeedAddress);
+
+        vm.expectRevert(DSCEngine.DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength.selector);
+        new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
     }
 
     ////////////////////////
     //     Price tests    //
     ////////////////////////
 
-    function testGetUsdValue() external {
+    function testGetUsdValue() public {
         uint256 amount = 15e18; //We have 15 ETH, each consts 2000USD -> 30000USD
         uint256 expectedValue = 30000;
         uint256 actualValue = dscEngine.getUsdValue(amount, weth);
+        assertEq(actualValue, expectedValue);
+    }
+
+    function testGetTokenAmountFromUsd() public {
+        uint256 amount = 15e18; //We have 15 USD, each ETH costs 2000USD -> 15USD/2000USD = 0.0075ETH
+        uint256 expectedValue = 75e14;
+        uint256 actualValue = dscEngine.getTokenAmountFromUsd(weth, amount);
         assertEq(actualValue, expectedValue);
     }
 
@@ -58,34 +83,51 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    // function testEventEmited() external{
-    //     vm.startPrank(i_USER);
-    //     //function approveInternal(address owner,address spender,uint256 value)
-    //     ERC20Mock(weth).approve(address(dscEngine),i_amount_collateral );
+    function testRevertsIfTokenIsntAllowed() external {
+        //Creation of a new token to try
+        ERC20Mock randomToken = new ERC20Mock("onix","O", i_USER, i_amount_collateral);
 
-    //     dscEngine.depositCollateral(weth, i_collateral_deposited);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit CollateralDoposited(address(i_USER), weth, i_collateral_deposited);
-    //     dscEngine.depositCollateral();
-    //     vm.stopPrank();
-    // }
+        vm.startPrank(i_USER);
+        vm.expectRevert(DSCEngine.DSCEngine__MustBeMoreThanZero.selector);
+        dscEngine.depositCollateral(address(randomToken), i_amount_collateral);
+    }
+
+    modifier depositCollateral(){
+        vm.startPrank(i_USER);
+        ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
+        dscEngine.depositCollateral(weth, i_amount_collateral);
+        vm.stopPrank();
+        _;
+    }
+
+    function testCollateralBalanceUpdated() external {}
+
+    function testDepositEventEmited() external {}
+
+    function testCanDepositAndGetAccountInfo() public depositCollateral{
+        (uint256 mintedDSCValue, uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
+
+        //We dont call the mint function -> mintedDSCValue = 0
+        uint256 expectedTotalDscminted =0;
+        uint256 expectedCollateralValueInUsd = dscEngine.getTokenAmountFromUsd(weth, collateralValue);
+        assertEq(mintedDSCValue, expectedTotalDscminted);
+        assertEq(collateralValue, expectedCollateralValueInUsd);    
+
+
+
+    }
 
     ////////////////////
     // Modifier Tests //
     ////////////////////
 
-    function testGreaterThanZero() external {
-        vm.expectRevert();
-        dscEngine.depositCollateral(weth, 0);
-    }
 
-    function testIsTokenAllowed() external {}
 
     //////////////////////////////////
     // Get Account Collateral tests //
     //////////////////////////////////
 
-    function testAccountCollareral() external {
-        uint256 actualCollateral = dscEngine._getAccountCollateralValueInUsd(i_USER);
-    }
+    // function testAccountCollareral() external {
+    //     uint256 actualCollateral = dscEngine._getAccountCollateralValueInUsd(i_USER);
+    // }
 }

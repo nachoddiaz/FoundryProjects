@@ -55,7 +55,7 @@ contract DSCEngine is ReentrancyGuard {
     ///////////////////
     error DSCEngine__MustBeMoreThanZero();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
-    error DSCEngine__TokenNotSupported();
+    error DSCEngine__TokenNotSupported(address token);
     error DSCEngine__DepositCollateralFailed();
     error DCSEnfine__HealthFactorBelowMinimum(uint256 healthFactor);
     error DSCEngine__MintFailed();
@@ -83,15 +83,21 @@ contract DSCEngine is ReentrancyGuard {
 
     modifier GreaterThanZero(uint256 _amount) {
         //Custom errors cant be used with the require statement
-        if (_amount > 0) revert DSCEngine__MustBeMoreThanZero();
+        if (_amount == 0) revert DSCEngine__MustBeMoreThanZero();
         _;
     }
 
     modifier isTokenAllowed(address _token) {
-        //If _token is not in the mapping, it returns 0x0 address thats equals to address(0)
-        if (s_priceFeeds[_token] != address(0)) revert DSCEngine__TokenNotSupported();
-        _;
+         //If _token is not in the mapping, it returns 0x0 address thats equals to address(0)
+         if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported(_token);
+         _;
     }
+    //  modifier isTokenAllowed(address token) {
+    //     if (s_priceFeeds[token] == address(0)) {
+    //         revert DSCEngine__TokenNotSupported(token);
+    //     }
+    //     _;
+    // }
 
     /////////////////////
     // State Variables //
@@ -378,10 +384,15 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     //This function is the inverse of getUsdValue
-    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public returns (uint256) {
+    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         //returns the amount of tokens that the debtToCover is worth
         return uint256(((ETHDECIMALS) * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
+    }
+
+    function getAccountInformation(address user) external view returns (uint256 mintedDSCValue, uint256 collateralValue) {
+        (mintedDSCValue, collateralValue) = _getAccountInformation(user);
+        return (mintedDSCValue, collateralValue);
     }
 }
