@@ -92,12 +92,6 @@ contract DSCEngine is ReentrancyGuard {
          if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported(_token);
          _;
     }
-    //  modifier isTokenAllowed(address token) {
-    //     if (s_priceFeeds[token] == address(0)) {
-    //         revert DSCEngine__TokenNotSupported(token);
-    //     }
-    //     _;
-    // }
 
     /////////////////////
     // State Variables //
@@ -110,8 +104,8 @@ contract DSCEngine is ReentrancyGuard {
 
     DecentralizedStableCoin private immutable i_dsc;
 
-    uint256 private constant FEED_PRECISION = 10 ** 10;
-    uint256 immutable ETHDECIMALS = 10 ** 18;
+    uint256 private constant FEED_PRECISION = 1e10;
+    uint256 immutable ETHDECIMALS = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 150; //150% overcollateralized
     uint256 private constant LIQUIDATION_DECIMALS = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1;
@@ -388,7 +382,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         //returns the amount of tokens that the debtToCover is worth
-        return uint256(((ETHDECIMALS) * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
+        return uint256((ETHDECIMALS * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
     }
 
     function getAccountInformation(address user) external view returns (uint256 mintedDSCValue, uint256 collateralValue) {

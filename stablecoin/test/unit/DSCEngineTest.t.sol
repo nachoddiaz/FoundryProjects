@@ -20,8 +20,7 @@ contract DSCEngineTest is Test {
     address wbtc;
 
     address immutable i_USER = makeAddr("user");
-    uint256 i_amount_collateral = 10 ether;
-    uint256 immutable i_collateral_deposited = 1 ether;
+    uint256 i_amount_collateral = 1 ether;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
 
@@ -30,7 +29,11 @@ contract DSCEngineTest is Test {
         (dsc, dscEngine, config) = deployer.run();
         (ethUsdPriceFeedAddress, btcUsdPriceFeedAddress, weth, wbtc,) = config.ActiveNetworkConfig();
 
-        ERC20Mock(weth).mint(address(dscEngine), i_amount_collateral);
+        if (block.chainid == 31337) {
+            vm.deal(i_USER, i_starting_erc20_balance);
+        }
+
+        ERC20Mock(weth).mint(address(dscEngine), i_starting_erc20_balance);
     }
 
     /////////////////////////
@@ -108,7 +111,7 @@ contract DSCEngineTest is Test {
         (uint256 mintedDSCValue, uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
 
         //We dont call the mint function -> mintedDSCValue = 0
-        uint256 expectedTotalDscminted =0;
+        uint256 expectedTotalDscminted = 0;
         uint256 expectedCollateralValueInUsd = dscEngine.getTokenAmountFromUsd(weth, collateralValue);
         assertEq(mintedDSCValue, expectedTotalDscminted);
         assertEq(collateralValue, expectedCollateralValueInUsd);    
