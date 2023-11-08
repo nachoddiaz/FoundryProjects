@@ -55,7 +55,7 @@ contract DSCEngine is ReentrancyGuard {
     ///////////////////
     error DSCEngine__MustBeMoreThanZero();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
-    error DSCEngine__TokenNotSupported(address token);
+    error DSCEngine__TokenNotSupported();
     error DSCEngine__DepositCollateralFailed();
     error DCSEnfine__HealthFactorBelowMinimum(uint256 healthFactor);
     error DSCEngine__MintFailed();
@@ -89,7 +89,7 @@ contract DSCEngine is ReentrancyGuard {
 
     modifier isTokenAllowed(address _token) {
          //If _token is not in the mapping, it returns 0x0 address thats equals to address(0)
-         if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported(_token);
+         if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported();
          _;
     }
 

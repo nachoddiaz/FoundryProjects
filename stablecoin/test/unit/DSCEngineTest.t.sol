@@ -9,10 +9,10 @@ import {HelperConfig} from "script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
 contract DSCEngineTest is Test {
-    DeployDSC deployer;
-    DSCEngine dscEngine;
-    DecentralizedStableCoin dsc;
-    HelperConfig config;
+
+    DSCEngine public dscEngine;
+    DecentralizedStableCoin public dsc;
+    HelperConfig public config;
 
     address ethUsdPriceFeedAddress;
     address weth;
@@ -25,15 +25,15 @@ contract DSCEngineTest is Test {
     uint8 constant GAS_PRICE = 1;
 
     function setUp() external {
-        deployer = new DeployDSC();
+        DeployDSC deployer = new DeployDSC();
         (dsc, dscEngine, config) = deployer.run();
         (ethUsdPriceFeedAddress, btcUsdPriceFeedAddress, weth, wbtc,) = config.ActiveNetworkConfig();
 
-        if (block.chainid == 31337) {
-            vm.deal(i_USER, i_starting_erc20_balance);
-        }
+        vm.deal(i_USER, i_starting_erc20_balance);
+        
 
-        ERC20Mock(weth).mint(address(dscEngine), i_starting_erc20_balance);
+        ERC20Mock(weth).mint(i_USER, i_starting_erc20_balance);
+
     }
 
     /////////////////////////
@@ -91,7 +91,7 @@ contract DSCEngineTest is Test {
         ERC20Mock randomToken = new ERC20Mock("onix","O", i_USER, i_amount_collateral);
 
         vm.startPrank(i_USER);
-        vm.expectRevert(DSCEngine.DSCEngine__MustBeMoreThanZero.selector);
+        vm.expectRevert(DSCEngine.DSCEngine__TokenNotSupported.selector);
         dscEngine.depositCollateral(address(randomToken), i_amount_collateral);
     }
 
