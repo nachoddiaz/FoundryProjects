@@ -58,7 +58,7 @@ contract DSCEngineTest is Test {
 
     function testGetUsdValue() public {
         uint256 amount = 15e18; //We have 15 ETH, each consts 2000USD -> 30000USD
-        uint256 expectedValue = 30000;
+        uint256 expectedValue = 30000e18;
         uint256 actualValue = dscEngine.getUsdValue(amount, weth);
         assertEq(actualValue, expectedValue);
     }
@@ -108,13 +108,17 @@ contract DSCEngineTest is Test {
     function testDepositEventEmited() external {}
 
     function testCanDepositAndGetAccountInfo() public depositCollateral{
-        (uint256 mintedDSCValue, uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dscEngine.getAccountInformation(i_USER);
 
-        //We dont call the mint function -> mintedDSCValue = 0
-        uint256 expectedTotalDscminted = 0;
-        uint256 expectedCollateralValueInUsd = dscEngine.getTokenAmountFromUsd(weth, collateralValue);
-        assertEq(mintedDSCValue, expectedTotalDscminted);
-        assertEq(collateralValue, expectedCollateralValueInUsd);    
+        //First we convert the collateral deposited to ETH
+        uint256 expectedDepositedAmountInETH = dscEngine.getTokenAmountFromUsd(weth, collateralValueInUsd);
+        assertEq(totalDscMinted, 0);
+        assertEq(expectedDepositedAmountInETH, i_amount_collateral);
+        // //We dont call the mint function -> mintedDSCValue = 0
+        // uint256 expectedTotalDscminted = 0;
+        // uint256 expectedCollateralValueInUsd = dscEngine.getUsdValue(collateralValue, weth);
+        // assertEq(totalDscMinted, expectedTotalDscminted);
+        // assertEq(2000, expectedCollateralValueInUsd);    
 
 
 

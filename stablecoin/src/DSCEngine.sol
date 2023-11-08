@@ -374,7 +374,7 @@ contract DSCEngine is ReentrancyGuard {
         (, int256 price,,,) = priceFeed.latestRoundData();
         //2. Multiply the amount by the price in USD of the token
         //3. Return the value in USD -> ETHDECIMALS ** 2 to get the value in USD, not in USD * 10e18
-        return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS ** 2));
+        return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS));
     }
 
     //This function is the inverse of getUsdValue
