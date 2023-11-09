@@ -88,9 +88,9 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     modifier isTokenAllowed(address _token) {
-         //If _token is not in the mapping, it returns 0x0 address thats equals to address(0)
-         if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported();
-         _;
+        //If _token is not in the mapping, it returns 0x0 address thats equals to address(0)
+        if (s_priceFeeds[_token] == address(0)) revert DSCEngine__TokenNotSupported();
+        _;
     }
 
     /////////////////////
@@ -334,19 +334,20 @@ contract DSCEngine is ReentrancyGuard {
     * @notice If a user goes below 1, they can get liquidated
     */
     function _healthFactor(address user) private view returns (uint256) {
-        (uint256 mintedDSCValue, uint256 collateralValueInUSD) = _getAccountInformation(user);
-        return uint256(
-            (collateralValueInUSD * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / (mintedDSCValue * ETHDECIMALS)
-        );
+        (uint256 mintedDSCValueInUSD, uint256 collateralValueInUSD) = _getAccountInformation(user);
+        return uint256((collateralValueInUSD * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / (mintedDSCValueInUSD))
+        /**
+         * ETHDECIMALS)
+         */
+        ;
     }
 
     function _revertIfHealthFactorIsBroken(address minter) internal view {
         //1. Check Health Factor
         if (_healthFactor(minter) < MIN_HEALTH_FACTOR) {
-        //2. Revert if not enough collateral
+            //2. Revert if not enough collateral
             revert DCSEnfine__HealthFactorBelowMinimum(_healthFactor(minter));
         }
-        
     }
 
     ////////////////////////
@@ -384,7 +385,11 @@ contract DSCEngine is ReentrancyGuard {
         return uint256((ETHDECIMALS * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
     }
 
-    function getAccountInformation(address user) external view returns (uint256 mintedDSCValue, uint256 collateralValue) {
+    function getAccountInformation(address user)
+        external
+        view
+        returns (uint256 mintedDSCValue, uint256 collateralValue)
+    {
         (mintedDSCValue, collateralValue) = _getAccountInformation(user);
         return (mintedDSCValue, collateralValue);
     }
@@ -393,11 +398,11 @@ contract DSCEngine is ReentrancyGuard {
         return s_collateralDoposited[user][token];
     }
 
-    function getS_DSCMinted(address user) external view returns(uint256){
+    function getS_DSCMinted(address user) external view returns (uint256) {
         return s_DSCMinted[user];
     }
 
-    function get_healthFactor(address user) external view returns(uint256){
+    function get_healthFactor(address user) external view returns (uint256) {
         return _healthFactor(user);
     }
 }

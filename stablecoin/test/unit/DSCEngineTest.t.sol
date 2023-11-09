@@ -9,7 +9,6 @@ import {HelperConfig} from "script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
 contract DSCEngineTest is Test {
-
     DSCEngine public dscEngine;
     DecentralizedStableCoin public dsc;
     HelperConfig public config;
@@ -21,9 +20,12 @@ contract DSCEngineTest is Test {
 
     address immutable i_USER = makeAddr("user");
     uint256 i_amount_collateral = 1 ether;
-    uint256 i_amount_minted = 0.5 ether;
+    uint256 i_amount_minted = 1000;
+    uint256 i_amount_minted_breaks_health_factor = 2000;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
+    uint256 private constant LIQUIDATION_THRESHOLD = 70; //70% overcollateralized
+    uint256 private constant LIQUIDATION_DECIMALS = 100;
 
     function setUp() external {
         DeployDSC deployer = new DeployDSC();
@@ -31,10 +33,8 @@ contract DSCEngineTest is Test {
         (ethUsdPriceFeedAddress, btcUsdPriceFeedAddress, weth, wbtc,) = config.ActiveNetworkConfig();
 
         vm.deal(i_USER, i_starting_erc20_balance);
-        
 
         ERC20Mock(weth).mint(i_USER, i_starting_erc20_balance);
-
     }
 
     /////////////////////////
@@ -94,7 +94,7 @@ contract DSCEngineTest is Test {
         dscEngine.depositCollateral(address(randomToken), i_amount_collateral);
     }
 
-    modifier depositCollateral(){
+    modifier depositCollateral() {
         vm.startPrank(i_USER);
         ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
         dscEngine.depositCollateral(weth, i_amount_collateral);
@@ -115,63 +115,71 @@ contract DSCEngineTest is Test {
 
     function testDepositEventEmited() external {}
 
-    function testCanDepositAndGetAccountInfo() public depositCollateral{
+    function testCanDepositAndGetAccountInfo() public depositCollateral {
         (uint256 totalDscMinted, uint256 collateralValueInUsd) = dscEngine.getAccountInformation(i_USER);
 
         //First we convert the collateral deposited to ETH
         uint256 expectedDepositedAmountInETH = dscEngine.getTokenAmountFromUsd(weth, collateralValueInUsd);
         assertEq(totalDscMinted, 0);
         assertEq(expectedDepositedAmountInETH, i_amount_collateral);
-        
     }
 
     //////////////////////////////////
     //     Mint Collateral tests    //
     //////////////////////////////////
 
+    modifier mintDSC() {
+        vm.startPrank(i_USER);
+        dscEngine.mintDSC(i_amount_minted);
+        vm.stopPrank();
+        _;
+    }
+
+    modifier mintDSCBreaksHealthFactor(){
+       vm.startPrank(i_USER);
+        dscEngine.mintDSC(i_amount_minted_breaks_health_factor);
+        vm.stopPrank();
+        _; 
+    }
 
     function testRevertsIfCollateralZeroWhileMinting() external {
         vm.startPrank(i_USER);
-        //function approveInternal(address owner,address spender,uint256 value)
-        ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
-
         vm.expectRevert();
         dscEngine.mintDSC(0);
         vm.stopPrank();
     }
 
-    function testUserToAmountDCSMinted() external depositCollateral{
+    function testUserToAmountDCSMinted() external depositCollateral {
         vm.startPrank(i_USER);
 
-        uint256 Before_getS_DSCMinted = dscEngine.getS_DSCMinted(i_USER);        
+        uint256 Before_getS_DSCMinted = dscEngine.getS_DSCMinted(i_USER);
         dscEngine.mintDSC(i_amount_minted);
         uint256 After_getS_DSCMinted = dscEngine.getS_DSCMinted(i_USER);
 
         vm.stopPrank();
 
-        assertEq(Before_getS_DSCMinted + i_amount_collateral, After_getS_DSCMinted);
+        assertEq(Before_getS_DSCMinted + i_amount_minted, After_getS_DSCMinted);
     }
 
-    function testHealthFactor() external{
-        (uint256 mintedDSC , uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
+    //To calculate th health factor we need to deposit the colateral and mint some DSC
+    function testHealthFactor() external depositCollateral mintDSC {
+        (uint256 mintedDSC, uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
 
-        // realHealthFactorGood = 
-        // realHealthFactorBroken = 
-        // uint256 expectedHealthFactor = dscEngine.get_healthFactor(i_USER);
+        uint256 realHealthFactor = ((collateralValue * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / mintedDSC);
+        uint256 expectedHealthFactor = dscEngine.get_healthFactor(i_USER);
 
-        //assertEq(realHealthFacotor);
+        assertEq(realHealthFactor, expectedHealthFactor);
     }
 
-
+    function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSCBreaksHealthFactor{
+        vm.expectRevert(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector);
+    }
 
     ////////////////////
     // Modifier Tests //
     ////////////////////
 
-
-
     //////////////////////////////////
     // Get Account Collateral tests //
     //////////////////////////////////
-
 }
