@@ -74,8 +74,6 @@ contract DSCEngineTest is Test {
     //   Deposit Collateral tests   //
     //////////////////////////////////
 
-    function testDepositCollateral() external {}
-
     function testRevertsIfCollateralZero() external {
         vm.startPrank(i_USER);
         //function approveInternal(address owner,address spender,uint256 value)
@@ -103,7 +101,16 @@ contract DSCEngineTest is Test {
         _;
     }
 
-    function testCollateralBalanceUpdated() external {}
+    function testCollateralBalanceUpdated() external {
+        vm.startPrank(i_USER);
+        uint256 Before_getS_collateralDoposited = dscEngine.getS_collateralDoposited(i_USER, weth);
+        ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
+        dscEngine.depositCollateral(weth, i_amount_collateral);
+        uint256 After_getS_collateralDoposited = dscEngine.getS_collateralDoposited(i_USER, weth);
+        vm.stopPrank();
+
+        assertEq(Before_getS_collateralDoposited + i_amount_collateral, After_getS_collateralDoposited);
+    }
 
     function testDepositEventEmited() external {}
 
@@ -114,14 +121,26 @@ contract DSCEngineTest is Test {
         uint256 expectedDepositedAmountInETH = dscEngine.getTokenAmountFromUsd(weth, collateralValueInUsd);
         assertEq(totalDscMinted, 0);
         assertEq(expectedDepositedAmountInETH, i_amount_collateral);
-        // //We dont call the mint function -> mintedDSCValue = 0
-        // uint256 expectedTotalDscminted = 0;
-        // uint256 expectedCollateralValueInUsd = dscEngine.getUsdValue(collateralValue, weth);
-        // assertEq(totalDscMinted, expectedTotalDscminted);
-        // assertEq(2000, expectedCollateralValueInUsd);    
+        
+    }
+
+    //////////////////////////////////
+    //     Mint Collateral tests    //
+    //////////////////////////////////
 
 
+    function testRevertsIfCollateralZeroWhileMinting() external {
+        vm.startPrank(i_USER);
+        //function approveInternal(address owner,address spender,uint256 value)
+        ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
 
+        vm.expectRevert();
+        dscEngine.mintDSC(0);
+        vm.stopPrank();
+    }
+
+    function testUserToAmountDCSMinted() external{
+        
     }
 
     ////////////////////

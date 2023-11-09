@@ -271,8 +271,6 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-    function getHealthFactor() external {}
-
     ////////////////////////
     // Internal Functions //
     ////////////////////////
@@ -301,7 +299,7 @@ contract DSCEngine is ReentrancyGuard {
     * @param amountDscToBurn -> Amount of DSC to burn
     * @param ownerOfCollateral -> Address of the user that has a healtFactor below MIN_HEALTH_FACTOR
     * @param DscFrom -> Address of the user that is going to burn the DSC
-    * @ndev Do not call this functino unless the function calling checks the healthFactors
+    * @ndev Do not call this function unless the function calling checks the healthFactors
     */
     function _burnDSC(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) private {
         s_DSCMinted[ownerOfCollateral] -= amountDscToBurn;
@@ -389,4 +387,10 @@ contract DSCEngine is ReentrancyGuard {
         (mintedDSCValue, collateralValue) = _getAccountInformation(user);
         return (mintedDSCValue, collateralValue);
     }
+
+    function getS_collateralDoposited(address user, address token) external view returns (uint256) {
+        return s_collateralDoposited[user][token];
+    }
+
+    function getS_DSCMinted
 }
