@@ -106,7 +106,7 @@ contract DSCEngine is ReentrancyGuard {
 
     uint256 private constant FEED_PRECISION = 1e10;
     uint256 immutable ETHDECIMALS = 1e18;
-    uint256 private constant LIQUIDATION_THRESHOLD = 150; //150% overcollateralized
+    uint256 private constant LIQUIDATION_THRESHOLD = 70; //70% overcollateralized
     uint256 private constant LIQUIDATION_DECIMALS = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1;
     uint256 private constant LIQUIDATION_BONUS = 10; //10% of the debt goes to liqiudators
@@ -343,9 +343,10 @@ contract DSCEngine is ReentrancyGuard {
     function _revertIfHealthFactorIsBroken(address minter) internal view {
         //1. Check Health Factor
         if (_healthFactor(minter) < MIN_HEALTH_FACTOR) {
+        //2. Revert if not enough collateral
             revert DCSEnfine__HealthFactorBelowMinimum(_healthFactor(minter));
         }
-        //2. Revert if not enough collateral
+        
     }
 
     ////////////////////////
@@ -371,7 +372,7 @@ contract DSCEngine is ReentrancyGuard {
         //1. Get the price in USD of the token
         (, int256 price,,,) = priceFeed.latestRoundData();
         //2. Multiply the amount by the price in USD of the token
-        //3. Return the value in USD -> ETHDECIMALS ** 2 to get the value in USD, not in USD * 10e18
+        //3. Return the value in USD -> ETHDECIMALS to get the value in USD, not in USD * 10e18
         return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS));
     }
 
@@ -392,5 +393,11 @@ contract DSCEngine is ReentrancyGuard {
         return s_collateralDoposited[user][token];
     }
 
-    function getS_DSCMinted
+    function getS_DSCMinted(address user) external view returns(uint256){
+        return s_DSCMinted[user];
+    }
+
+    function get_healthFactor(address user) external view returns(uint256){
+        return _healthFactor(user);
+    }
 }

@@ -21,6 +21,7 @@ contract DSCEngineTest is Test {
 
     address immutable i_USER = makeAddr("user");
     uint256 i_amount_collateral = 1 ether;
+    uint256 i_amount_minted = 0.5 ether;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
 
@@ -139,9 +140,29 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    function testUserToAmountDCSMinted() external{
-        
+    function testUserToAmountDCSMinted() external depositCollateral{
+        vm.startPrank(i_USER);
+
+        uint256 Before_getS_DSCMinted = dscEngine.getS_DSCMinted(i_USER);        
+        dscEngine.mintDSC(i_amount_minted);
+        uint256 After_getS_DSCMinted = dscEngine.getS_DSCMinted(i_USER);
+
+        vm.stopPrank();
+
+        assertEq(Before_getS_DSCMinted + i_amount_collateral, After_getS_DSCMinted);
     }
+
+    function testHealthFactor() external{
+        (uint256 mintedDSC , uint256 collateralValue) = dscEngine.getAccountInformation(i_USER);
+
+        // realHealthFactorGood = 
+        // realHealthFactorBroken = 
+        // uint256 expectedHealthFactor = dscEngine.get_healthFactor(i_USER);
+
+        //assertEq(realHealthFacotor);
+    }
+
+
 
     ////////////////////
     // Modifier Tests //
@@ -153,7 +174,4 @@ contract DSCEngineTest is Test {
     // Get Account Collateral tests //
     //////////////////////////////////
 
-    // function testAccountCollareral() external {
-    //     uint256 actualCollateral = dscEngine._getAccountCollateralValueInUsd(i_USER);
-    // }
 }
