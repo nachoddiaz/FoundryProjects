@@ -335,11 +335,10 @@ contract DSCEngine is ReentrancyGuard {
     */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 mintedDSCValueInUSD, uint256 collateralValueInUSD) = _getAccountInformation(user);
-        return uint256((collateralValueInUSD * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / (mintedDSCValueInUSD))
+        return uint256((collateralValueInUSD * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / (mintedDSCValueInUSD));
         /**
          * ETHDECIMALS)
          */
-        ;
     }
 
     function _revertIfHealthFactorIsBroken(address minter) internal view {
@@ -349,6 +348,7 @@ contract DSCEngine is ReentrancyGuard {
             revert DCSEnfine__HealthFactorBelowMinimum(_healthFactor(minter));
         }
     }
+
 
     ////////////////////////
     //   View Functions   //
@@ -404,5 +404,9 @@ contract DSCEngine is ReentrancyGuard {
 
     function get_healthFactor(address user) external view returns (uint256) {
         return _healthFactor(user);
+    }
+
+    function get_revertIfHealthFactorIsBroken(address minter) external view {
+        _revertIfHealthFactorIsBroken(minter);
     }
 }

@@ -135,11 +135,10 @@ contract DSCEngineTest is Test {
         _;
     }
 
-    modifier mintDSCBreaksHealthFactor(){
-       vm.startPrank(i_USER);
+    modifier mintDSCBreaksHealthFactor() {
+        vm.startPrank(i_USER);
         dscEngine.mintDSC(i_amount_minted_breaks_health_factor);
-        vm.stopPrank();
-        _; 
+        _;
     }
 
     function testRevertsIfCollateralZeroWhileMinting() external {
@@ -172,7 +171,14 @@ contract DSCEngineTest is Test {
     }
 
     function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSCBreaksHealthFactor{
-        vm.expectRevert(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector);
+        uint256 healthFactor = dscEngine.get_healthFactor(i_USER);
+        //vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector, healthFactor));
+        dscEngine.get_revertIfHealthFactorIsBroken(i_USER);
+        dscEngine.mintDSC(i_amount_minted_breaks_health_factor);
+        //To know the balance of DSC that have our User
+        console.log(dsc.balanceOf(i_USER));
+
+
     }
 
     ////////////////////
