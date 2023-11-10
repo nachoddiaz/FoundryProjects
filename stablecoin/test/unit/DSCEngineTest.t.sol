@@ -19,6 +19,7 @@ contract DSCEngineTest is Test {
     address wbtc;
 
     address immutable i_USER = makeAddr("user");
+    address immutable i_LIQUIDATOR = makeAddr("liquidator");
     uint256 i_amount_collateral = 1 ether;
     uint256 i_amount_minted = 1000;
     uint256 i_amount_minted_breaks_health_factor = 2000;
@@ -170,20 +171,30 @@ contract DSCEngineTest is Test {
         assertEq(realHealthFactor, expectedHealthFactor);
     }
 
-    function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSCBreaksHealthFactor{
-        uint256 healthFactor = dscEngine.get_healthFactor(i_USER);
+    function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSC {
+        //uint256 healthFactor = dscEngine.get_healthFactor(i_USER);
+        vm.expectRevert(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector);
         //vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector, healthFactor));
-        dscEngine.get_revertIfHealthFactorIsBroken(i_USER);
-        dscEngine.mintDSC(i_amount_minted_breaks_health_factor);
+        dscEngine.mintDSC(i_amount_minted);
         //To know the balance of DSC that have our User
         console.log(dsc.balanceOf(i_USER));
-
-
     }
 
-    ////////////////////
-    // Modifier Tests //
-    ////////////////////
+    /////////////////////////////
+    // _Redeem Collateral Tests //
+    /////////////////////////////
+
+    function testCollateralBalanceUpdatedWhenRedeemed() external depositCollateral mintDSC {
+        vm.startPrank(i_USER);
+        uint256 Before_getS_collateralRedeemed = dscEngine.getS_collateralDoposited(i_USER, weth);
+        ERC20Mock(weth).approve(address(dscEngine), i_amount_collateral);
+        dscEngine.get_redeemCollateral(weth, i_amount_collateral, i_USER, i_LIQUIDATOR);
+        uint256 After_getS_collateralRedeemed = dscEngine.getS_collateralDoposited(i_USER, weth);
+        vm.stopPrank();
+        console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
+
+        assertEq(Before_getS_collateralRedeemed - i_amount_collateral, After_getS_collateralRedeemed);
+    }
 
     //////////////////////////////////
     // Get Account Collateral tests //

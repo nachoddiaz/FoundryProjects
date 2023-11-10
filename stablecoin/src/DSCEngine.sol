@@ -108,7 +108,7 @@ contract DSCEngine is ReentrancyGuard {
     uint256 immutable ETHDECIMALS = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 70; //70% overcollateralized
     uint256 private constant LIQUIDATION_DECIMALS = 100;
-    uint256 private constant MIN_HEALTH_FACTOR = 1;
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18;
     uint256 private constant LIQUIDATION_BONUS = 10; //10% of the debt goes to liqiudators
     ///////////////////
     //   Functions   //
@@ -349,7 +349,6 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-
     ////////////////////////
     //   View Functions   //
     ////////////////////////
@@ -408,5 +407,11 @@ contract DSCEngine is ReentrancyGuard {
 
     function get_revertIfHealthFactorIsBroken(address minter) external view {
         _revertIfHealthFactorIsBroken(minter);
+    }
+
+    function get_redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
+        external
+    {
+        _redeemCollateral(tokenCollateralAddress, amountCollateral, from, to);
     }
 }
