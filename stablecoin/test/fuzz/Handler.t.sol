@@ -21,7 +21,13 @@ contract Handler is Test {
 
     ERC20Mock weth;
     ERC20Mock wbtc;    
-    //Only call redeem function if there is collateral to redeem
+    
+
+    //////////////////////////////
+    //      Ghost Variables     //
+    //////////////////////////////
+
+    uint256 public timesMintFunctionIsCalled;
 
     uint256 MAX_DEPOSIT_SIZE = type(uint96).max; // = 7.9228163e+28
 
@@ -64,9 +70,18 @@ contract Handler is Test {
     function mintDSC(uint amount, uint256 collateralSeed) public{
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
         uint256 maxAmountToMint = dscEngine.getMaxAmountToMint(msg.sender, address(collateral));
+        if(maxAmountToMint < 0){
+            return;
+        }
+        timesMintFunctionIsCalled++;
         amount = bound(amount, 0 , maxAmountToMint);
+        if(amount == 0){
+            return;
+        } 
+        vm.startPrank(msg.sender);
         dscEngine.mintDSC(amount);
-
+        vm.stopPrank();
+        
     }
 
     //Helper Functions
