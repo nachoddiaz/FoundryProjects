@@ -15,13 +15,15 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
 contract Handler is Test {
 
+    //1.Set up the contracts that the handler are going to handle
+    DSCEngine dscEngine;
+    DecentralizedStableCoin dsc;
+
     ERC20Mock weth;
     ERC20Mock wbtc;    
     //Only call redeem function if there is collateral to redeem
 
-    //1.Set up the contracts that the handler are going to handle
-    DSCEngine dscEngine;
-    DecentralizedStableCoin dsc;
+    uint256 MAX_DEPOSIT_SIZE = type(uint96).max; // = 7.9228163e+28
 
     constructor(DSCEngine _dscEngine, DecentralizedStableCoin _dsc) {
         dscEngine = _dscEngine;
@@ -35,7 +37,36 @@ contract Handler is Test {
     //Write the functinos neede to alocate collateral
     function depositCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+        //Bound is a function that we use to limit the amount of collateral that we can deposit
+        amountCollateral = bound(amountCollateral, 1 , MAX_DEPOSIT_SIZE);
+
+        vm.startPrank(msg.sender);
+        collateral.mint(msg.sender, amountCollateral);
+        collateral.approve(address(dscEngine),amountCollateral);
         dscEngine.depositCollateral(address(collateral), amountCollateral);
+        vm.stopPrank();
+    }
+
+    function redeemCollateral(uint256 collateralSeed, uint256 amountCollateral) public{
+        ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+        uint256 maxCollateralToRedeem = dscEngine.getS_collateralDoposited(msg.sender, address(collateral));
+        //maxCollatelaToReddem can be 0 and in that case, function breaks
+
+        amountCollateral = bound(amountCollateral, 0 , maxCollateralToRedeem);
+        if(amountCollateral == 0){
+            return;
+        }
+        vm.startPrank(msg.sender);
+        dscEngine.redeemCollatreral(address(collateral), amountCollateral);
+        vm.stopPrank();
+    }
+
+    function mintDSC(uint amount, uint256 collateralSeed) public{
+        ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+        uint256 maxAmountToMint = dscEngine.getMaxAmountToMint(msg.sender, address(collateral));
+        amount = bound(amount, 0 , maxAmountToMint);
+        dscEngine.mintDSC(amount);
+
     }
 
     //Helper Functions

@@ -421,4 +421,9 @@ contract DSCEngine is ReentrancyGuard {
     function getCollateralTokens() external view returns (address[] memory) {
         return s_collateraltokens;
     }
+
+    function getMaxAmountToMint(address user, address token) external view returns(uint256){
+        uint256 collaterlaDeposited = s_collateralDoposited[user][token];
+        return (collaterlaDeposited * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS);
+    }
 }
