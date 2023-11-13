@@ -25,6 +25,9 @@ contract DSCEngineTest is Test {
     uint256 i_amount_minted_breaks_health_factor = 2000;
     uint256 i_amount_to_redeem_ok = 0.3 ether;
     uint256 i_amount_to_redeem_fail = 2 ether;
+    uint256 i_amount_burn_ok = 100;
+    uint256 i_amount_burn_fail_because_breaks_health_factor = 500;
+    uint256 i_amount_burn_fail_because_burned_greater_minted = 4000;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
     uint256 private constant LIQUIDATION_THRESHOLD = 70; //70% overcollateralized
@@ -220,6 +223,16 @@ contract DSCEngineTest is Test {
     ///////////////////////////////
     //   Burn Collateral Tests   //
     ///////////////////////////////
+
+    // function testDscBalanceIsUpdated() external depositCollateral mintDSC{
+    //     vm.startPrank(i_USER);
+    //     uint256 Before_getS_DSCburned = dscEngine.getS_DSCMinted(i_USER);
+    //     dscEngine.get_burnCollateral(i_amount_burn_ok, i_USER, i_LIQUIDATOR);
+    //     uint256 After_getS_DSCBurned = dscEngine.getS_DSCMinted(i_USER);
+    //     vm.stopPrank();
+
+    //     assertEq(Before_getS_DSCburned, After_getS_DSCBurned + i_amount_burn_ok);
+    // }
 
     //////////////////////////////////
     // Get Account Collateral tests //

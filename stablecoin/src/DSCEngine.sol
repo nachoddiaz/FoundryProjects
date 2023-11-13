@@ -65,6 +65,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__LiquidationFailed();
     error DSCEngine__HealthFactorNotImproved();
     error DSCEngine__RedeemedMoreThanCollateralDeposited();
+    error DSCEngine__BurnMoreThanDSCMinted();
 
     ///////////////////
     //    Events     //
@@ -223,7 +224,7 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    //If someone is near liquidation, we nee someoune to liquidate him
+    //If someone is near liquidation, we need someoune to liquidate him
     //To achieve that, the liquidator burns the debt and keep the collateral of the first debtor
     //1. the contract need to call redeem and burn to keep the DSC value stable
 
@@ -306,6 +307,10 @@ contract DSCEngine is ReentrancyGuard {
     * @ndev Do not call this function unless the function calling checks the healthFactors
     */
     function _burnDSC(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) private {
+        if(s_DSCMinted[ownerOfCollateral] < amountDscToBurn){
+            revert DSCEngine__BurnMoreThanDSCMinted();
+        }
+
         s_DSCMinted[ownerOfCollateral] -= amountDscToBurn;
         emit DSCBurned(ownerOfCollateral, amountDscToBurn);
 
@@ -420,6 +425,10 @@ contract DSCEngine is ReentrancyGuard {
         external
     {
         _redeemCollateral(tokenCollateralAddress, amountCollateral, from, to);
+    }
+
+    function get_burnCollateral(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) external{
+        _burnDSC(amountDscToBurn, ownerOfCollateral, DscFrom);
     }
 
     function getCollateralTokens() external view returns (address[] memory) {
