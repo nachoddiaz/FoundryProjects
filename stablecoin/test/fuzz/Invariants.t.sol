@@ -47,4 +47,30 @@ contract Invariants is StdInvariant, Test {
 
         assert(totalColateralValueInUsd >= totalSupply);
     }
+
+    function invariant_gettersShouldNotRevert() public view {
+        dscEngine.getCollateralTokens();
+
+        // dscEngine._getAccountCollateralValueInUsd();
+
+        // dscEngine.getUsdValue();
+
+        // dscEngine.getTokenAmountFromUsd();
+
+        // dscEngine.getAccountInformation();
+
+        // dscEngine.getS_collateralDoposited();
+
+        // dscEngine.getS_DSCMinted();
+
+        // dscEngine.get_healthFactor();
+
+        // dscEngine.get_revertIfHealthFactorIsBroken();
+
+        // dscEngine.get_redeemCollateral();
+
+        dscEngine.getCollateralTokens();
+
+        // dscEngine.getMaxAmountToMint();
+    }
 }

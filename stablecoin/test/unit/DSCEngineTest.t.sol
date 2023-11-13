@@ -23,6 +23,8 @@ contract DSCEngineTest is Test {
     uint256 i_amount_collateral = 1 ether;
     uint256 i_amount_minted = 1000;
     uint256 i_amount_minted_breaks_health_factor = 2000;
+    uint256 i_amount_to_redeem_ok = 0.3 ether;
+    uint256 i_amount_to_redeem_fail = 2 ether;
     uint256 constant i_starting_erc20_balance = 10 ether;
     uint8 constant GAS_PRICE = 1;
     uint256 private constant LIQUIDATION_THRESHOLD = 70; //70% overcollateralized
@@ -180,9 +182,16 @@ contract DSCEngineTest is Test {
         console.log(dsc.balanceOf(i_USER));
     }
 
-    /////////////////////////////
+    //////////////////////////////
     // _Redeem Collateral Tests //
-    /////////////////////////////
+    //////////////////////////////
+
+    function testRedeemFunctionWorksCorrectly() external depositCollateral{
+        console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
+        dscEngine.get_redeemCollateral(weth, i_amount_to_redeem_ok, i_USER, i_LIQUIDATOR);
+        console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
+
+    }
 
     function testCollateralBalanceUpdatedWhenRedeemed() external depositCollateral mintDSC {
         vm.startPrank(i_USER);
@@ -195,6 +204,22 @@ contract DSCEngineTest is Test {
 
         assertEq(Before_getS_collateralRedeemed - i_amount_collateral, After_getS_collateralRedeemed);
     }
+
+    function testEventEmitedWhenRedeemed() external {}
+
+
+    function test_revertIfAmountToRedeemGreaterThanCollateralDeposited() external depositCollateral{
+        console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
+        vm.expectRevert(DSCEngine.DSCEngine__RedeemedMoreThanCollateralDeposited.selector);
+        dscEngine.get_redeemCollateral(weth, i_amount_to_redeem_fail, i_USER, i_LIQUIDATOR);
+        console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
+    }
+
+
+
+    ///////////////////////////////
+    //   Burn Collateral Tests   //
+    ///////////////////////////////
 
     //////////////////////////////////
     // Get Account Collateral tests //

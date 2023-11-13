@@ -64,6 +64,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFactorOk(address user);
     error DSCEngine__LiquidationFailed();
     error DSCEngine__HealthFactorNotImproved();
+    error DSCEngine__RedeemedMoreThanCollateralDeposited();
 
     ///////////////////
     //    Events     //
@@ -283,13 +284,16 @@ contract DSCEngine is ReentrancyGuard {
     * @param from -> Address of the user thats is going to be liquidated
     * @param to -> Address of the liquidator and de receiver of the reward
     */
-    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
+    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateralToRedeem, address from, address to)
         private
     {
-        s_collateralDoposited[from][tokenCollateralAddress] -= amountCollateral;
-        emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
+        if(s_collateralDoposited[from][tokenCollateralAddress] < amountCollateralToRedeem){
+            revert DSCEngine__RedeemedMoreThanCollateralDeposited();
+        }
+        s_collateralDoposited[from][tokenCollateralAddress] -= amountCollateralToRedeem;
+        emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateralToRedeem);
 
-        bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
+        bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateralToRedeem);
         if (!success) {
             revert DSCEngine__RedeemCollateralFailed();
         }
@@ -422,7 +426,7 @@ contract DSCEngine is ReentrancyGuard {
         return s_collateraltokens;
     }
 
-    function getMaxAmountToMint(address user, address token) external view returns(uint256){
+    function getMaxAmountToMint(address user, address token) external view returns (uint256) {
         uint256 collaterlaDeposited = s_collateralDoposited[user][token];
         uint256 mintedDSCValue = s_DSCMinted[user];
         uint256 canMint = ((collaterlaDeposited * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) - mintedDSCValue);
