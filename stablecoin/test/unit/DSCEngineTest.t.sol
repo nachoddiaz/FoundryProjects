@@ -189,11 +189,10 @@ contract DSCEngineTest is Test {
     // _Redeem Collateral Tests //
     //////////////////////////////
 
-    function testRedeemFunctionWorksCorrectly() external depositCollateral{
+    function testRedeemFunctionWorksCorrectly() external depositCollateral {
         console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
         dscEngine.get_redeemCollateral(weth, i_amount_to_redeem_ok, i_USER, i_LIQUIDATOR);
         console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
-
     }
 
     function testCollateralBalanceUpdatedWhenRedeemed() external depositCollateral mintDSC {
@@ -210,29 +209,46 @@ contract DSCEngineTest is Test {
 
     function testEventEmitedWhenRedeemed() external {}
 
-
-    function test_revertIfAmountToRedeemGreaterThanCollateralDeposited() external depositCollateral{
+    function test_revertIfAmountToRedeemGreaterThanCollateralDeposited() external depositCollateral {
         console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
         vm.expectRevert(DSCEngine.DSCEngine__RedeemedMoreThanCollateralDeposited.selector);
         dscEngine.get_redeemCollateral(weth, i_amount_to_redeem_fail, i_USER, i_LIQUIDATOR);
         console.log(dscEngine.getS_collateralDoposited(i_USER, weth));
     }
 
-
-
     ///////////////////////////////
     //   Burn Collateral Tests   //
     ///////////////////////////////
 
-    // function testDscBalanceIsUpdated() external depositCollateral mintDSC{
-    //     vm.startPrank(i_USER);
-    //     uint256 Before_getS_DSCburned = dscEngine.getS_DSCMinted(i_USER);
-    //     dscEngine.get_burnCollateral(i_amount_burn_ok, i_USER, i_LIQUIDATOR);
-    //     uint256 After_getS_DSCBurned = dscEngine.getS_DSCMinted(i_USER);
-    //     vm.stopPrank();
+    function testDscBalanceIsUpdated() external depositCollateral mintDSC {
+        vm.startPrank(i_USER);
+        dsc.approve(address(dscEngine), i_amount_burn_ok);
+        uint256 Before_getS_DSCburned = dscEngine.getS_DSCMinted(i_USER);
+        dscEngine.get_burnCollateral(i_amount_burn_ok, i_USER, i_USER);
+        uint256 After_getS_DSCBurned = dscEngine.getS_DSCMinted(i_USER);
+        vm.stopPrank();
 
-    //     assertEq(Before_getS_DSCburned, After_getS_DSCBurned + i_amount_burn_ok);
-    // }
+        assertEq(Before_getS_DSCburned, After_getS_DSCBurned + i_amount_burn_ok);
+    }
+
+    function testRevertsIfAmount2BurnBreaksHealthFactor() external depositCollateral mintDSC {
+        vm.startPrank(i_USER);
+        dsc.approve(address(dscEngine), i_amount_burn_fail_because_breaks_health_factor);
+        dscEngine.get_burnCollateral(i_amount_burn_fail_because_breaks_health_factor, i_USER, i_USER);
+        vm.expectRevert();
+        uint256 healthfactor = dscEngine.get_healthFactor(i_USER);
+        dscEngine.get_revertIfHealthFactorIsBroken(i_USER);
+        console.log(healthfactor);
+        vm.stopPrank();
+    }
+
+    function testRevertsIfAmount2Burn_greater_DSCMinted() external depositCollateral mintDSC {
+        vm.startPrank(i_USER);
+        dsc.approve(address(dscEngine), i_amount_burn_fail_because_burned_greater_minted);
+        vm.expectRevert(DSCEngine.DSCEngine__BurnMoreThanDSCMinted.selector);
+        dscEngine.get_burnCollateral(i_amount_burn_fail_because_burned_greater_minted, i_USER, i_USER);
+        vm.stopPrank();
+    }
 
     //////////////////////////////////
     // Get Account Collateral tests //

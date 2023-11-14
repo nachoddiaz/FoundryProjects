@@ -37,10 +37,10 @@ contract Invariants is StdInvariant, Test {
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dscEngine));
         uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(dscEngine));
 
-        console.log("totalWethDeposited: %s", totalWethDeposited);
-        console.log("totalWbtcDeposited: %s", totalWbtcDeposited);
-        console.log("totalSupply: %s", totalSupply);
-        console.log("minted function called %s times", handler.timesMintFunctionIsCalled());
+        // console.log("totalWethDeposited: %s", totalWethDeposited);
+        // console.log("totalWbtcDeposited: %s", totalWbtcDeposited);
+        // console.log("totalSupply: %s", totalSupply);
+        // console.log("minted function called %s times", handler.timesMintFunctionIsCalled());
 
         uint256 totalColateralValueInUsd =
             dscEngine.getUsdValue(totalWethDeposited, weth) + dscEngine.getUsdValue(totalWbtcDeposited, wbtc);

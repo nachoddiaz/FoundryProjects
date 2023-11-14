@@ -58,6 +58,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenNotSupported();
     error DSCEngine__DepositCollateralFailed();
     error DCSEnfine__HealthFactorBelowMinimum(uint256 healthFactor);
+    error DCSEngine__HealthFactorBelowMinimum();
     error DSCEngine__MintFailed();
     error DSCEngine__RedeemCollateralFailed();
     error DSCEngine__BurnDSCFailed();
@@ -285,10 +286,13 @@ contract DSCEngine is ReentrancyGuard {
     * @param from -> Address of the user thats is going to be liquidated
     * @param to -> Address of the liquidator and de receiver of the reward
     */
-    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateralToRedeem, address from, address to)
-        private
-    {
-        if(s_collateralDoposited[from][tokenCollateralAddress] < amountCollateralToRedeem){
+    function _redeemCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateralToRedeem,
+        address from,
+        address to
+    ) private {
+        if (s_collateralDoposited[from][tokenCollateralAddress] < amountCollateralToRedeem) {
             revert DSCEngine__RedeemedMoreThanCollateralDeposited();
         }
         s_collateralDoposited[from][tokenCollateralAddress] -= amountCollateralToRedeem;
@@ -304,10 +308,10 @@ contract DSCEngine is ReentrancyGuard {
     * @param amountDscToBurn -> Amount of DSC to burn
     * @param ownerOfCollateral -> Address of the user that has a healtFactor below MIN_HEALTH_FACTOR
     * @param DscFrom -> Address of the user that is going to burn the DSC
-    * @ndev Do not call this function unless the function calling checks the healthFactors
+    * @dev Do not call this function unless the function calling checks the healthFactors
     */
     function _burnDSC(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) private {
-        if(s_DSCMinted[ownerOfCollateral] < amountDscToBurn){
+        if (s_DSCMinted[ownerOfCollateral] < amountDscToBurn) {
             revert DSCEngine__BurnMoreThanDSCMinted();
         }
 
@@ -427,7 +431,7 @@ contract DSCEngine is ReentrancyGuard {
         _redeemCollateral(tokenCollateralAddress, amountCollateral, from, to);
     }
 
-    function get_burnCollateral(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) external{
+    function get_burnCollateral(uint256 amountDscToBurn, address ownerOfCollateral, address DscFrom) external {
         _burnDSC(amountDscToBurn, ownerOfCollateral, DscFrom);
     }
 
@@ -440,5 +444,10 @@ contract DSCEngine is ReentrancyGuard {
         uint256 mintedDSCValue = s_DSCMinted[user];
         uint256 canMint = ((collaterlaDeposited * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) - mintedDSCValue);
         return canMint;
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns(address){
+        return s_priceFeeds[token];
+
     }
 }

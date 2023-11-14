@@ -12,6 +12,9 @@ import {DeployDSC} from "script/DeployDSC.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
+import {MockV3Aggregator} from "test/mocks/MockV3Aggregator.sol";
+
+//PriceFeeds Needed
 
 contract Handler is Test {
     //1.Set up the contracts that the handler are going to handle
@@ -27,6 +30,8 @@ contract Handler is Test {
 
     uint256 public timesMintFunctionIsCalled;
     address[] public usersWithCollateralDeposited;
+    MockV3Aggregator public ethUsdPriceFeed;
+    MockV3Aggregator public btcUsdPriceFeed;
 
     uint256 MAX_DEPOSIT_SIZE = type(uint96).max; // = 7.9228163e+28
 
@@ -37,6 +42,10 @@ contract Handler is Test {
         address[] memory collateralTokens = dscEngine.getCollateralTokens();
         weth = ERC20Mock(collateralTokens[0]);
         wbtc = ERC20Mock(collateralTokens[1]);
+
+        //To update the price of the collateral
+        ethUsdPriceFeed = MockV3Aggregator(dscEngine.getCollateralTokenPriceFeed(address(weth)));
+        btcUsdPriceFeed = MockV3Aggregator(dscEngine.getCollateralTokenPriceFeed(address(wbtc)));
     }
 
     //Write the functinos neede to alocate collateral
@@ -85,6 +94,12 @@ contract Handler is Test {
         dscEngine.mintDSC(amount);
         vm.stopPrank();
         timesMintFunctionIsCalled++;
+    }
+
+
+    function updateCollateralPrice(uint256 newPrice) public{
+        int newPriceInt = int256(uint256(newPrice));
+        ethUsdPriceFeed.updateAnswer(newPriceInt);
     }
 
     //Helper Functions
