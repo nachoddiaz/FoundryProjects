@@ -176,10 +176,12 @@ contract DSCEngineTest is Test {
         assertEq(realHealthFactor, expectedHealthFactor);
     }
 
+    /*
+    * dev We try to mint more DSC than the health factor allows, then it reverts
+    */
     function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSC {
         //uint256 healthFactor = dscEngine.get_healthFactor(i_USER);
-        vm.expectRevert(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector);
-        //vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector, healthFactor));
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector,0));
         dscEngine.mintDSC(i_amount_minted);
         //To know the balance of DSC that have our User
         console.log(dsc.balanceOf(i_USER));

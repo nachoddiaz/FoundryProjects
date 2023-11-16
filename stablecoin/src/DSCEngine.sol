@@ -40,7 +40,7 @@ pragma solidity ^0.8.19;
 *  @notice This contract handles the logic for minting, redeeming DSC and deposit/withdraw collateral
 *
 */
-
+import {console} from "forge-std/Test.sol";
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 //So we can use the nonReentrant modifier
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -352,14 +352,12 @@ contract DSCEngine is ReentrancyGuard {
             return type(uint256).max;
         }
         return uint256((collateralValueInUSD * LIQUIDATION_THRESHOLD / LIQUIDATION_DECIMALS) / (mintedDSCValueInUSD));
-        /**
-         * ETHDECIMALS)
-         */
     }
 
     function _revertIfHealthFactorIsBroken(address minter) internal view {
         //1. Check Health Factor
         if (_healthFactor(minter) < MIN_HEALTH_FACTOR) {
+            console.log("health factor is",_healthFactor(minter));
             //2. Revert if not enough collateral
             revert DCSEnfine__HealthFactorBelowMinimum(_healthFactor(minter));
         }
