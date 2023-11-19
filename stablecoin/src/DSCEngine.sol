@@ -314,18 +314,18 @@ contract DSCEngine is ReentrancyGuard {
         if (s_DSCMinted[ownerOfCollateral] < amountDscToBurn) {
             revert DSCEngine__BurnMoreThanDSCMinted();
         }
-
         s_DSCMinted[ownerOfCollateral] -= amountDscToBurn;
         emit DSCBurned(ownerOfCollateral, amountDscToBurn);
 
-        //We cant burn tokens without passing them previously to the contract,
-        //Thats why first we transfer the tokens from the msg.sender to the contract
-        //bool success = i_dsc.burn(amountDscToBurn);
         bool success = i_dsc.transferFrom(DscFrom, address(this), amountDscToBurn);
         if (!success) {
             revert DSCEngine__BurnDSCFailed();
         }
+        //2.800000000000000000
+        _revertIfHealthFactorIsBroken(ownerOfCollateral);
+        console.log("health factor is",_healthFactor(ownerOfCollateral));
         i_dsc.burn(amountDscToBurn);
+
     }
 
     function _getAccountInformation(address user)

@@ -233,14 +233,16 @@ contract DSCEngineTest is Test {
         assertEq(Before_getS_DSCburned, After_getS_DSCBurned + i_amount_burn_ok);
     }
 
+    /*
+    * dev Cant break health factor when burning DSC cause we are minoring debt
+    */
     function testRevertsIfAmount2BurnBreaksHealthFactor() external depositCollateral mintDSC {
         vm.startPrank(i_USER);
+        console.log("health Factor", dscEngine.get_healthFactor(i_USER));
+        //1400000000000000000
         dsc.approve(address(dscEngine), i_amount_burn_fail_because_breaks_health_factor);
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector,0));
         dscEngine.get_burnCollateral(i_amount_burn_fail_because_breaks_health_factor, i_USER, i_USER);
-        vm.expectRevert();
-        uint256 healthfactor = dscEngine.get_healthFactor(i_USER);
-        dscEngine.get_revertIfHealthFactorIsBroken(i_USER);
-        console.log(healthfactor);
         vm.stopPrank();
     }
 
@@ -252,7 +254,11 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
+    ///////////////////////////////////
+    // Get Account Information tests //
+    ///////////////////////////////////
+
     //////////////////////////////////
-    // Get Account Collateral tests //
+    //      Liquidation tests       //
     //////////////////////////////////
 }
