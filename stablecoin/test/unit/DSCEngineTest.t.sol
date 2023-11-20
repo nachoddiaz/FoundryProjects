@@ -181,7 +181,7 @@ contract DSCEngineTest is Test {
     */
     function test_revertIfHealthFactorIsBroken() external depositCollateral mintDSC {
         //uint256 healthFactor = dscEngine.get_healthFactor(i_USER);
-        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector,0));
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector, 0));
         dscEngine.mintDSC(i_amount_minted);
         //To know the balance of DSC that have our User
         console.log(dsc.balanceOf(i_USER));
@@ -241,7 +241,7 @@ contract DSCEngineTest is Test {
         console.log("health Factor", dscEngine.get_healthFactor(i_USER));
         //1400000000000000000
         dsc.approve(address(dscEngine), i_amount_burn_fail_because_breaks_health_factor);
-        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector,0));
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DCSEnfine__HealthFactorBelowMinimum.selector, 0));
         dscEngine.get_burnCollateral(i_amount_burn_fail_because_breaks_health_factor, i_USER, i_USER);
         vm.stopPrank();
     }

@@ -96,9 +96,8 @@ contract Handler is Test {
         timesMintFunctionIsCalled++;
     }
 
-
-    function updateCollateralPrice(uint256 newPrice) public{
-        int newPriceInt = int256(uint256(newPrice));
+    function updateCollateralPrice(uint256 newPrice) public {
+        int256 newPriceInt = int256(uint256(newPrice));
         ethUsdPriceFeed.updateAnswer(newPriceInt);
     }
 

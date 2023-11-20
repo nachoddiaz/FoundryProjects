@@ -323,9 +323,8 @@ contract DSCEngine is ReentrancyGuard {
         }
         //2.800000000000000000
         _revertIfHealthFactorIsBroken(ownerOfCollateral);
-        console.log("health factor is",_healthFactor(ownerOfCollateral));
+        console.log("health factor is", _healthFactor(ownerOfCollateral));
         i_dsc.burn(amountDscToBurn);
-
     }
 
     function _getAccountInformation(address user)
@@ -357,7 +356,7 @@ contract DSCEngine is ReentrancyGuard {
     function _revertIfHealthFactorIsBroken(address minter) internal view {
         //1. Check Health Factor
         if (_healthFactor(minter) < MIN_HEALTH_FACTOR) {
-            console.log("health factor is",_healthFactor(minter));
+            console.log("health factor is", _healthFactor(minter));
             //2. Revert if not enough collateral
             revert DCSEnfine__HealthFactorBelowMinimum(_healthFactor(minter));
         }
@@ -444,8 +443,7 @@ contract DSCEngine is ReentrancyGuard {
         return canMint;
     }
 
-    function getCollateralTokenPriceFeed(address token) external view returns(address){
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
         return s_priceFeeds[token];
-
     }
 }
