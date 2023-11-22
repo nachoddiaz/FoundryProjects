@@ -48,6 +48,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from
     "lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./libraries/OracleLib.sol";
 
 contract DSCEngine is ReentrancyGuard {
     ///////////////////
@@ -67,6 +68,12 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFactorNotImproved();
     error DSCEngine__RedeemedMoreThanCollateralDeposited();
     error DSCEngine__BurnMoreThanDSCMinted();
+
+    ///////////////////
+    //    Types      //
+    ///////////////////
+
+    using OracleLib for AggregatorV3Interface;
 
     ///////////////////
     //    Events     //
@@ -383,7 +390,7 @@ contract DSCEngine is ReentrancyGuard {
     function getUsdValue(uint256 amount, address token) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         //1. Get the price in USD of the token
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestPrice();
         //2. Multiply the amount by the price in USD of the token
         //3. Return the value in USD -> ETHDECIMALS to get the value in USD, not in USD * 10e18
         return uint256(((uint256(price) * FEED_PRECISION) * amount) / (ETHDECIMALS));
@@ -392,7 +399,7 @@ contract DSCEngine is ReentrancyGuard {
     //This function is the inverse of getUsdValue
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestPrice();
         //returns the amount of tokens that the debtToCover is worth
         return uint256((ETHDECIMALS * usdAmountInWei) / (uint256(price) * FEED_PRECISION));
     }
